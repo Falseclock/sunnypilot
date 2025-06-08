@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import pyray as rl
-import os
 import threading
 import time
 
-from openpilot.common.basedir import BASEDIR
 from openpilot.system.ui.lib.application import gui_app
+from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.window import BaseWindow
 from openpilot.system.ui.text import wrap_text
+
+from openpilot.system.ui.sunnypilot.lib.application import gui_app_sp
 
 # Constants
 PROGRESS_BAR_WIDTH = 1000
@@ -26,9 +27,8 @@ def clamp(value, min_value, max_value):
 
 class SpinnerRenderer:
   def __init__(self):
-    self._comma_texture = gui_app.load_texture_from_image(os.path.join(BASEDIR, "selfdrive/assets/img_spinner_comma.png"), TEXTURE_SIZE, TEXTURE_SIZE)
-    self._spinner_texture = gui_app.load_texture_from_image(os.path.join(BASEDIR, "selfdrive/assets/img_spinner_track.png"), TEXTURE_SIZE, TEXTURE_SIZE,
-                                                            alpha_premultiply=True)
+    self._comma_texture = gui_app_sp.sp_texture("images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
@@ -81,7 +81,7 @@ class SpinnerRenderer:
       rl.draw_rectangle_rounded(bar, 1, 10, rl.WHITE)
     elif wrapped_lines:
       for i, line in enumerate(wrapped_lines):
-        text_size = rl.measure_text_ex(gui_app.font(), line, FONT_SIZE, 0.0)
+        text_size = measure_text_cached(gui_app.font(), line, FONT_SIZE)
         rl.draw_text_ex(gui_app.font(), line, rl.Vector2(center.x - text_size.x / 2, y_pos + i * LINE_HEIGHT),
                         FONT_SIZE, 0.0, rl.WHITE)
 
@@ -101,7 +101,11 @@ class Spinner(BaseWindow[SpinnerRenderer]):
     self.update(str(round(100 * cur / total)))
 
 
-if __name__ == "__main__":
+def main():
   with Spinner() as s:
     s.update("Spinner text")
     time.sleep(5)
+
+
+if __name__ == "__main__":
+  main()
