@@ -23,5 +23,13 @@
     "system/**",
     "third_party/**",
     "tools/**",
-  ]
+  ],
+  "files.associations": {
+    "array": "c",
+    "ranges": "c",
+    "span": "c",
+    "vector": "c",
+    "xstring": "c",
+    "xutility": "c"
+  }
 }
