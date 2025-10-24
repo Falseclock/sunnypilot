@@ -7,6 +7,8 @@
 
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/longitudinal/speed_limit/speed_limit_settings.h"
 
+#include "selfdrive/ui/sunnypilot/qt/util.h"
+
 SpeedLimitSettings::SpeedLimitSettings(QWidget *parent) : QStackedWidget(parent) {
   subPanelFrame = new QFrame();
   QVBoxLayout *subPanelLayout = new QVBoxLayout(subPanelFrame);
@@ -25,9 +27,10 @@ SpeedLimitSettings::SpeedLimitSettings(QWidget *parent) : QStackedWidget(parent)
   speedLimitPolicyScreen = new SpeedLimitPolicy(this);
 
   std::vector<QString> speed_limit_mode_texts{
-    SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::OFF)],
-    SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::INFORMATION)],
-    SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::WARNING)],
+    tr(SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::OFF)].toStdString().c_str()),
+    tr(SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::INFORMATION)].toStdString().c_str()),
+    tr(SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::WARNING)].toStdString().c_str()),
+    tr(SpeedLimitModeTexts[static_cast<int>(SpeedLimitMode::ASSIST)].toStdString().c_str())
   };
   speed_limit_mode_settings = new ButtonParamControlSP(
     "SpeedLimitMode",
@@ -35,7 +38,7 @@ SpeedLimitSettings::SpeedLimitSettings(QWidget *parent) : QStackedWidget(parent)
     "",
     "",
     speed_limit_mode_texts,
-    385);
+    380);
   list->addItem(speed_limit_mode_settings);
 
   list->addItem(horizontal_line());
@@ -63,9 +66,9 @@ SpeedLimitSettings::SpeedLimitSettings(QWidget *parent) : QStackedWidget(parent)
   QVBoxLayout *offsetLayout = new QVBoxLayout(offsetFrame);
 
   std::vector<QString> speed_limit_offset_texts{
-    SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::NONE)],
-    SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::FIXED)],
-    SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::PERCENT)]
+    tr(SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::NONE)].toStdString().c_str()),
+    tr(SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::FIXED)].toStdString().c_str()),
+    tr(SpeedLimitOffsetTypeTexts[static_cast<int>(SpeedLimitOffsetType::PERCENT)].toStdString().c_str())
   };
   speed_limit_offset_settings = new ButtonParamControlSP(
     "SpeedLimitOffsetType",
@@ -102,10 +105,42 @@ SpeedLimitSettings::SpeedLimitSettings(QWidget *parent) : QStackedWidget(parent)
 }
 
 void SpeedLimitSettings::refresh() {
+  bool is_release = params.getBool("IsReleaseSpBranch");
   bool is_metric_param = params.getBool("IsMetric");
   SpeedLimitMode speed_limit_mode_param = static_cast<SpeedLimitMode>(std::atoi(params.get("SpeedLimitMode").c_str()));
   SpeedLimitOffsetType offset_type_param = static_cast<SpeedLimitOffsetType>(std::atoi(params.get("SpeedLimitOffsetType").c_str()));
   QString offsetLabel = QString::fromStdString(params.get("SpeedLimitValueOffset"));
+
+  bool sla_available;
+  auto cp_bytes = params.get("CarParamsPersistent");
+  auto cp_sp_bytes = params.get("CarParamsSPPersistent");
+  if (!cp_bytes.empty() && !cp_sp_bytes.empty()) {
+    AlignedBuffer aligned_buf;
+    AlignedBuffer aligned_buf_sp;
+    capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
+    capnp::FlatArrayMessageReader cmsg_sp(aligned_buf_sp.align(cp_sp_bytes.data(), cp_sp_bytes.size()));
+    cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
+    cereal::CarParamsSP::Reader CP_SP = cmsg_sp.getRoot<cereal::CarParamsSP>();
+
+    bool has_longitudinal_control = hasLongitudinalControl(CP);
+    bool has_icbm = hasIntelligentCruiseButtonManagement(CP_SP);
+
+    /*
+     * Speed Limit Assist is available when:
+     * - has_longitudinal_control or has_icbm, and
+     * - is not a release branch or not a disallowed brand, and
+     * - is not always disallowed
+     */
+    bool sla_disallow_in_release = CP.getBrand() == "tesla" && is_release;
+    bool sla_always_disallow = CP.getBrand() == "rivian";
+    sla_available = (has_longitudinal_control || has_icbm) && !sla_disallow_in_release && !sla_always_disallow;
+
+    if (!sla_available && speed_limit_mode_param == SpeedLimitMode::ASSIST) {
+      params.put("SpeedLimitMode", std::to_string(static_cast<int>(SpeedLimitMode::WARNING)));
+    }
+  } else {
+    sla_available = false;
+  }
 
   speed_limit_mode_settings->setDescription(modeDescription(speed_limit_mode_param));
   speed_limit_offset->setDescription(offsetDescription(offset_type_param));
@@ -124,10 +159,22 @@ void SpeedLimitSettings::refresh() {
     speed_limit_offset->showDescription();
   }
 
+  if (sla_available) {
+    speed_limit_mode_settings->setEnableSelectedButtons(true, convertSpeedLimitModeValues(getSpeedLimitModeValues()));
+  } else {
+    speed_limit_mode_settings->setEnableSelectedButtons(true, convertSpeedLimitModeValues(
+      {SpeedLimitMode::OFF, SpeedLimitMode::INFORMATION, SpeedLimitMode::WARNING}));
+  }
+
+  speed_limit_mode_settings->refresh();
   speed_limit_mode_settings->showDescription();
   speed_limit_offset->showDescription();
 }
 
 void SpeedLimitSettings::showEvent(QShowEvent *event) {
   refresh();
+}
+
+void SpeedLimitSettings::hideEvent(QHideEvent *event) {
+  setCurrentWidget(subPanelFrame);
 }
