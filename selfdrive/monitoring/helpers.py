@@ -47,11 +47,11 @@ class DRIVER_MONITOR_SETTINGS:
     self._POSE_YAW_THRESHOLD = 0.442                                                # original: 0.4020 — increased by 10% to allow head shift left/right while face forward
     self._POSE_YAW_THRESHOLD_SLACK = 0.555                                          # original: 0.5042 — increased by 10% to allow head shift left/right while face forward
     self._POSE_YAW_THRESHOLD_STRICT = self._POSE_YAW_THRESHOLD
-    self._PITCH_NATURAL_OFFSET = 0.029 # initial value before offset is learned
+    self._PITCH_NATURAL_OFFSET = -0.024                                             # original: 0.029 - calibrated to alert only when head tilt < -30° (accounts for seat/windshield geometry) - initial value before offset is learned
     self._PITCH_NATURAL_THRESHOLD = 0.50                                            # original: 0.449 — increased to allow more natural downward tilt
-    self._YAW_NATURAL_OFFSET = 0.097 # initial value before offset is learned
+    self._YAW_NATURAL_OFFSET = -0.018                                               # original: 0.097 - calibrated for LHD with centered camera - initial value before offset is learned
     self._PITCH_MAX_OFFSET = 0.124
-    self._PITCH_MIN_OFFSET = -0.0881
+    self._PITCH_MIN_OFFSET = -0.70                                                  # original: -0.0881 - extended to allow natural head-down position
     self._YAW_MAX_OFFSET = 0.289
     self._YAW_MIN_OFFSET = -0.0246
 
