@@ -30,7 +30,7 @@ class DRIVER_MONITOR_SETTINGS:
     self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 6.
 
     self._FACE_THRESHOLD = 0.7
-    self._EYE_THRESHOLD = 0.65
+    self._EYE_THRESHOLD = 0.585                                                     # original: 0.65 — decreased by 10% to be less sensitive to poor eye detection in bright light
     self._SG_THRESHOLD = 0.9
     self._BLINK_THRESHOLD = 0.865
 
@@ -44,11 +44,11 @@ class DRIVER_MONITOR_SETTINGS:
     self._POSE_PITCH_THRESHOLD = 0.3133
     self._POSE_PITCH_THRESHOLD_SLACK = 0.3237
     self._POSE_PITCH_THRESHOLD_STRICT = self._POSE_PITCH_THRESHOLD
-    self._POSE_YAW_THRESHOLD = 0.4020
-    self._POSE_YAW_THRESHOLD_SLACK = 0.5042
+    self._POSE_YAW_THRESHOLD = 0.442                                                # original: 0.4020 — increased by 10% to allow head shift left/right while face forward
+    self._POSE_YAW_THRESHOLD_SLACK = 0.555                                          # original: 0.5042 — increased by 10% to allow head shift left/right while face forward
     self._POSE_YAW_THRESHOLD_STRICT = self._POSE_YAW_THRESHOLD
     self._PITCH_NATURAL_OFFSET = 0.029 # initial value before offset is learned
-    self._PITCH_NATURAL_THRESHOLD = 0.449
+    self._PITCH_NATURAL_THRESHOLD = 0.50                                            # original: 0.449 — increased to allow more natural downward tilt
     self._YAW_NATURAL_OFFSET = 0.097 # initial value before offset is learned
     self._PITCH_MAX_OFFSET = 0.124
     self._PITCH_MIN_OFFSET = -0.0881
